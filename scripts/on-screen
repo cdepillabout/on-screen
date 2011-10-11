@@ -41,9 +41,15 @@ def main():
     # get the monitor to run this on
     monitor = getscreen.getscreen()
 
-    # read programs
     homedir = os.path.expanduser('~')
-    progreader = csv.reader(open(os.path.join(homedir, ".onscreenrc")))
+    rc_file = os.path.join(homedir, ".onscreenrc")
+
+    # if we don't have the rc file, then just run the command asked for
+    if not os.path.isfile(rc_file):
+        run(sys.argv[1], sys.argv[1:])
+
+    # read programs
+    progreader = csv.reader(open(rc_file))
     progrow = None
     for row in progreader:
         if row[0] == sys.argv[1]:
