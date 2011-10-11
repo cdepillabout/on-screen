@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+
+import os, sys
+import getscreen
+import csv
+import shlex
+
+def inPATH(command):
+    "Makes sure command is on PATH"
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    if not "PATH" in os.environ:
+        sys.stderr.write("WARNING: PATH environment variable does not exist.\n")
+        return False
+
+    for path in os.environ["PATH"].split(os.pathsep):
+        fullpath = os.path.join(path, command)
+        if is_exe(fullpath):
+            return True
+
+    return False
+
+def run(program_name, name_plus_args):
+    """
+    Try to exec program_name, with name_plus_args as the arguments.
+    Fail if it is not in our path.
+    """
+    if inPATH(program_name):
+        os.execvp(program_name, name_plus_args)
+    else:
+        sys.stderr.write("ERROR! Could not find `%s` on PATH.\n" % sys.argv[1])
+        sys.exit(1)
+
+def main():
+
+    if len(sys.argv) <= 1:
+        sys.stderr.write("ERROR! Must only specify command to run.\n")
+        sys.exit(1)
+
+    # get the monitor to run this on
+    monitor = getscreen.getscreen()
+
+    # read programs
+    homedir = os.path.expanduser('~')
+    progreader = csv.reader(open(os.path.join(homedir, ".onscreenrc")))
+    progrow = None
+    for row in progreader:
+        if row[0] == sys.argv[1]:
+            progrow = row
+            break
+
+    # if the user tries to run a command that is in ~/.onscreenrc, they must
+    # not specify arguments because we don't know what to do with them.
+    # (It might be easy just to apend the arguments on to the end of the
+    # command we are running.)
+    if progrow and len(sys.argv) >= 3:
+        sys.stderr.write(
+                "ERROR! Must not specify arguments to commands that are in ~/.onscreenrc.\n")
+        sys.exit(1)
+
+
+    # If we didn't find the program to run, then just run the program that
+    # was specified on the command line.
+    if progrow is None:
+        run(sys.argv[1], sys.argv[1:])
+    else:
+        run(sys.argv[1], shlex.split(progrow[1+monitor]))
+
+
+if __name__ == '__main__':
+    main()
+
